@@ -38,7 +38,7 @@ CALIB_FILE = 'hmc5883_calibration.dat'
 
 # HMC5883L Class
 class hmc5883():
-    def __init__(self):
+    def __init__(self,debug):
         self.bus = SMBus(1)
         self.bus.write_byte_data(DEV_ADDR, 0, 0b01110000) # Set to 8 samples @ 15Hz
         self.bus.write_byte_data(DEV_ADDR, 1, 0b00100000) # 1.3 gain LSb / Gauss 1090 (default)
@@ -47,7 +47,8 @@ class hmc5883():
         self.x_offset = 0.0
         self.y_offset = 0.0
         self.z_offset = 0.0  # not using
-        
+        self.debug_level = debug
+
         # load calibration data if its exists
         if os.path.isfile(CALIB_FILE):
             f = open(CALIB_FILE,'r')
@@ -59,13 +60,15 @@ class hmc5883():
 
 
     def calibration(self):
-        print "Calibrating..."
+        if self.debug_level > 0:
+            print "Calibrating..."
         x_min = 0
         x_max = 0
         y_min = 0
         y_max = 0
-        
-        print "Turn sensor 360 slow..."
+
+        if self.debug_level > 0:        
+            print "Turn sensor 360 slow..."
 
         for i in range(0,500):
             x = self.read_word_signed(X_OUTPUT_H)
@@ -84,17 +87,22 @@ class hmc5883():
             if y > y_max:
                 y_max = y
 
-            print "%d  x = %d  y = %d" % (i,x,y)
+            if self.debug_level > 0:
+                print "%d  x = %d  y = %d" % (i,x,y)
             sleep(0.1)
 
-        print "min x = ", x_min, "  max x = ", x_max
-        print "min y = ", y_min, "  max y = ", y_max
+
+        if self.debug_level > 0:
+            print "min x = ", x_min, "  max x = ", x_max
+            print "min y = ", y_min, "  max y = ", y_max
 
         self.x_offset = (x_max + x_min) / 2
         self.y_offset = (y_max + y_min) / 2
-        print "x offset =  ", self.x_offset
-        print "y offset =  ", self.y_offset
-        print "Done calibiration"
+
+        if self.debug_level > 0:
+            print "x offset =  ", self.x_offset
+            print "y offset =  ", self.y_offset
+            print "Done calibiration"
 
         # writing calibration data
         f = open(CALIB_FILE,'w')
